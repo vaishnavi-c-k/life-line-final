@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Command Center — LIFELINE National Emergency Operations</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    /* Dashboard Specific Styling */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+      margin-top: 24px;
+    }
+
+    .map-container {
+      height: 420px;
+      background: #0F172A;
+      border-radius: var(--radius-lg);
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: var(--shadow-prem);
+    }
+
+    #liveMap {
+      height: 100%;
+      width: 100%;
+      /* Removed filters for colorful map */
+    }
+
+    .incident-marker {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 15px var(--red);
+      animation: pulseRed 2s infinite;
+    }
+
+    .marker-label {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.9);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      color: white;
+      white-space: nowrap;
+      margin-top: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    @keyframes pulseRed {
+      0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.7);
+      }
+
+      70% {
+        transform: scale(1.2);
+        box-shadow: 0 0 0 10px rgba(229, 57, 53, 0);
+      }
+
+      100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(229, 57, 53, 0);
+      }
+    }
+
+    .live-feed {
+      background: white;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-lt);
+      display: flex;
+      flex-direction: column;
+      height: 380px;
+      /* Matched to map-container height */
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .feed-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-lt);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #F8FAFC;
+      flex-shrink: 0;
+    }
+
+    .feed-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 20px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-lt) transparent;
+    }
+
+    .feed-list::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .feed-list::-webkit-scrollbar-thumb {
+      background: var(--border-lt);
+      border-radius: 4px;
+    }
+
+    .feed-item {
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border-lt);
+      display: flex;
+      gap: 12px;
+      animation: fadeInRight 0.4s ease both;
+    }
+
+    .feed-item:last-child {
+      border-bottom: none;
+    }
+
+    @keyframes fadeInRight {
+      from {
+        opacity: 0;
+        transform: translateX(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .feed-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: #F1F5F9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+    }
+
+    .feed-content h4 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 2px;
+    }
+
+    .feed-content p {
+      font-size: 0.78rem;
+      color: var(--text-sec);
+      line-height: 1.4;
+    }
+
+    .feed-time {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 1200px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="sidebarRoot"></div>
+  <div class="main">
+    <div id="topbarRoot"></div>
+    <div id="tickerRoot"></div>
+
+    <div class="content">
+      <div class="page-header">
+        <div class="page-header-info">
+          <h2>Operations Command Center</h2>
+          <p>Real-time national situational awareness and agency coordination hub.</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-outline">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-4-4 4m0 0-4-4m4 4V4" />
+            </svg>
+            Export Intel
+          </button>
+          <button class="btn btn-primary" onclick="openModal('issueAlertModal')">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V5a2 2 0 1 0-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9" />
+            </svg>
+            Broadcast Alert
+          </button>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card critical">
+          <div class="stat-label">Critical Incidents</div>
+          <div class="stat-val" id="stat-incidents">0</div>
+          <div class="stat-sub">↑ 4 escalated in last 6h</div>
+          <div class="stat-icon">🚨</div>
+        </div>
+        <div class="stat-card warning">
+          <div class="stat-label">Relief Camps</div>
+          <div class="stat-val" id="stat-camps">0</div>
+          <div class="stat-sub">87% Capacity utilized</div>
+          <div class="stat-icon">🏕️</div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-label">Agency Deployment</div>
+          <div class="stat-val" id="stat-agencies">0</div>
+          <div class="stat-sub">Active in 14 sectors</div>
+          <div class="stat-icon">🏢</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Victims Registered</div>
+          <div class="stat-val" id="stat-victims">0</div>
+          <div class="stat-sub">Unified tracking active</div>
+          <div class="stat-icon">👥</div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="map-container">
+          <div id="liveMap"></div>
+          <div
+            style="position: absolute; bottom: 20px; right: 20px; z-index: 1000; background: rgba(15, 23, 42, 0.8); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); color: white; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; pointer-events: none;">
+            Operational Tracking: Active</div>
+        </div>
+
+        <div class="live-feed" style="height: 420px;">
+          <div class="feed-header">
+            <h3 style="font-size: 0.9rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Resource
+              Allocation</h3>
+            <span class="badge badge-info">Metrics</span>
+          </div>
+          <div style="padding: 20px; flex: 1; display: flex; align-items: center;">
+            <canvas id="resourceChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid" style="margin-top: 24px;">
+        <div class="table-card" style="margin-bottom: 0;">
+          <div class="card-header">
+            <h3 style="font-size: 0.9rem; font-weight: 800; text-transform: uppercase;">Incident Severity Trends</h3>
+          </div>
+          <div style="padding: 20px; height: 300px;">
+            <canvas id="incidentChart"></canvas>
+          </div>
+        </div>
+
+        <div class="live-feed">
+          <div class="feed-header">
+            <h3 style="font-size: 0.9rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Live Intel
+              Feed</h3>
+            <span class="badge badge-success">Live</span>
+          </div>
+          <div class="feed-list">
+            <div class="feed-item">
+              <div class="feed-icon">🌊</div>
+              <div class="feed-content">
+                <h4>Water levels rising</h4>
+                <p>Kosi River (Bihar) crossed danger mark by 1.2m at 14:00 IST.</p>
+                <div class="feed-time">2m ago • SRC Bihar</div>
+              </div>
+            </div>
+            <div class="feed-item">
+              <div class="feed-icon">🚁</div>
+              <div class="feed-content">
+                <h4>NDRF Deployment</h4>
+                <p>Battalion 04 air-lifted to Jamnagar for Cyclone response.</p>
+                <div class="feed-time">15m ago • NDRF HQ</div>
+              </div>
+            </div>
+            <div class="feed-item">
+              <div class="feed-icon">⛺</div>
+              <div class="feed-content">
+                <h4>Camp Capacity Alert</h4>
+                <p>Relief Camp #42 (Bhuj) reached 95% occupancy.</p>
+                <div class="feed-time">32m ago • District Collector</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-card" style="margin-top: 24px;">
+        <div class="card-header">
+          <h3>High-Priority Disasters</h3>
+          <a href="disasters.html" class="btn btn-outline btn-sm">View All Events</a>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Incident ID</th>
+                <th>Disaster Event</th>
+                <th>Sector / State</th>
+                <th>Affected Pop.</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span style="font-family: var(--font-mono); font-weight: 700;">#D-2026-001</span></td>
+                <td>
+                  <div style="font-weight: 700; color: var(--text-main);">Cyclone Biparjoy</div><small
+                    style="color: var(--text-muted);">Severe Cyclonic Storm</small>
+                </td>
+                <td>Gujarat Coastal</td>
+                <td>1,24,000</td>
+                <td><span class="badge badge-danger">RED ALERT</span></td>
+                <td><button class="btn btn-outline btn-sm">Intel</button></td>
+              </tr>
+              <tr>
+                <td><span style="font-family: var(--font-mono); font-weight: 700;">#D-2026-042</span></td>
+                <td>
+                  <div style="font-weight: 700; color: var(--text-main);">Bihar Floods 2025</div><small
+                    style="color: var(--text-muted);">Monsoon Overflow</small>
+                </td>
+                <td>North Bihar</td>
+                <td>3,82,000</td>
+                <td><span class="badge badge-danger">RED ALERT</span></td>
+                <td><button class="btn btn-outline btn-sm">Intel</button></td>
+              </tr>
+              <tr>
+                <td><span style="font-family: var(--font-mono); font-weight: 700;">#D-2026-018</span></td>
+                <td>
+                  <div style="font-weight: 700; color: var(--text-main);">Joshimath Landslide</div><small
+                    style="color: var(--text-muted);">Subsidence Event</small>
+                </td>
+                <td>Uttarakhand</td>
+                <td>8,400</td>
+                <td><span class="badge badge-warning">ORANGE ALERT</span></td>
+                <td><button class="btn btn-outline btn-sm">Intel</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Issue Alert Modal -->
+  <div class="modal-overlay" id="issueAlertModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Broadcast Emergency Alert</h3>
+        <button class="btn-close" onclick="closeModal('issueAlertModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Alert Severity Level</label>
+          <select>
+            <option>🔴 Level 1: Red (Immediate Danger)</option>
+            <option>🟠 Level 2: Orange (High Risk)</option>
+            <option>🟡 Level 3: Yellow (Monitoring)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Target Sector / Region</label>
+          <input type="text" placeholder="e.g. Coastal Gujarat, North Bihar">
+        </div>
+        <div class="form-group">
+          <label>Alert Message (SMS/Broadcast)</label>
+          <textarea rows="3" placeholder="Enter the official emergency message..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('issueAlertModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="broadcastAlert()">Broadcast Now</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    const auth = requireAuth('dashboard');
+    if (auth) {
+      document.getElementById('sidebarRoot').innerHTML = buildSidebar('dashboard');
+      document.getElementById('topbarRoot').innerHTML = buildTopbar('National Dashboard', 'Operational Awareness');
+      injectEmergencyTicker();
+
+      window.addEventListener('load', () => {
+        animateCount(document.getElementById('stat-incidents'), 14);
+        animateCount(document.getElementById('stat-camps'), 87);
+        animateCount(document.getElementById('stat-agencies'), 47);
+        animateCount(document.getElementById('stat-victims'), 48320);
+
+        initCharts();
+        initMap();
+      });
+    }
+
+    function initMap() {
+      const map = L.map('liveMap', {
+        zoomControl: false,
+        attributionControl: false
+      }).setView([20.5937, 78.9629], 5);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
+      }).addTo(map);
+
+      // Add demo markers
+      const locations = [
+        { pos: [23.2156, 69.6669], name: 'Cyclone Biparjoy [GUJ]' },
+        { pos: [25.0961, 85.3131], name: 'Bihar Floods [BHR]' },
+        { pos: [30.5506, 79.5660], name: 'Joshimath Subsidence [UK]' }
+      ];
+
+      locations.forEach(loc => {
+        L.circleMarker(loc.pos, {
+          radius: 8,
+          fillColor: "#ef5350",
+          color: "#fff",
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.8
+        }).addTo(map).bindTooltip(loc.name, { permanent: true, direction: 'top', className: 'map-tooltip' });
+      });
+    }
+
+    function initCharts() {
+      // Resource Allocation Chart
+      new Chart(document.getElementById('resourceChart'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Food', 'Medical', 'Equipment', 'Shelter'],
+          datasets: [{
+            data: [40, 25, 20, 15],
+            backgroundColor: ['#1976D2', '#4CAF50', '#FF9800', '#F44336'],
+            borderWidth: 0,
+            hoverOffset: 10
+          }]
+        },
+        options: {
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10, weight: '600' } } }
+          },
+          cutout: '70%',
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      });
+
+      // Incident Severity Chart
+      new Chart(document.getElementById('incidentChart'), {
+        type: 'line',
+        data: {
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          datasets: [{
+            label: 'Incident Volume',
+            data: [12, 19, 15, 25, 22, 30, 28],
+            borderColor: '#1976D2',
+            backgroundColor: 'rgba(25, 118, 210, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointBackgroundColor: '#1976D2'
+          }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+            x: { grid: { display: false } }
+          },
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      });
+    }
+
+    function broadcastAlert() {
+      showToast('Emergency alert broadcasted successfully', 'success');
+      closeModal('issueAlertModal');
+      logAudit('ALERT_BROADCAST', 'New Red Alert issued for Coastal Gujarat');
+    }
+  </script>
+</body>
+
+</html>

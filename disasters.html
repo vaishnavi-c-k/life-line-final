@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disaster Intelligence Registry — LIFELINE National Emergency Operations</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+  <div id="sidebarRoot"></div>
+  <div class="main">
+    <div id="topbarRoot"></div>
+    <div id="tickerRoot"></div>
+
+    <div class="content">
+      <div class="page-header">
+        <div class="page-header-info">
+          <h2>National Disaster Registry</h2>
+          <p>Consolidated intelligence on active and historical disaster events nationwide.</p>
+        </div>
+        <div class="page-header-actions" id="adminActions">
+          <button class="btn btn-primary" onclick="openModal('disasterModal')">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M12 4v16m8-8H4" />
+            </svg>
+            Register Event
+          </button>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Events Recorded</div>
+          <div class="stat-val" id="stat-total">0</div>
+          <div class="stat-sub">Historical & Active</div>
+        </div>
+        <div class="stat-card critical">
+          <div class="stat-label">Active Disasters</div>
+          <div class="stat-val" id="stat-active">0</div>
+          <div class="stat-sub">Immediate focus required</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Population Affected</div>
+          <div class="stat-val" id="stat-affected">0</div>
+          <div class="stat-sub">Estimated across active zones</div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-label">Containment Rate</div>
+          <div class="stat-val" id="stat-containment">0%</div>
+          <div class="stat-sub">Events successfully managed</div>
+        </div>
+      </div>
+
+      <div class="two-col" style="grid-template-columns: 1fr 1fr; align-items: stretch; margin-bottom: 24px;">
+        <div class="table-card" style="margin-bottom: 0;">
+          <div class="table-card-header">
+            <h3>Disaster Type Distribution</h3>
+          </div>
+          <div style="padding: 24px; height: 280px;">
+            <canvas id="typeChart"></canvas>
+          </div>
+        </div>
+
+        <div class="table-card" style="margin-bottom: 0;">
+          <div class="table-card-header">
+            <h3>Affected Population Trends</h3>
+          </div>
+          <div style="padding: 24px; height: 280px;">
+            <canvas id="impactChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="card-header" style="flex-direction: column; align-items: stretch; gap: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Event Intelligence Logs</h3>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-outline btn-sm active" onclick="filterByStatus('All', this)">All</button>
+              <button class="btn btn-outline btn-sm" onclick="filterByStatus('Active', this)">🔴 Active</button>
+              <button class="btn btn-outline btn-sm" onclick="filterByStatus('Monitoring', this)">🟡 Monitoring</button>
+              <button class="btn btn-outline btn-sm" onclick="filterByStatus('Contained', this)">🟢 Contained</button>
+            </div>
+          </div>
+
+          <div class="form-row" style="margin-top: 8px;">
+            <div class="form-group" style="flex: 2; margin-bottom: 0;">
+              <input type="text" id="searchInput" placeholder="Search events by name, location, or ID..."
+                oninput="applyFilters()">
+            </div>
+            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+              <select id="typeFilter" onchange="applyFilters()">
+                <option value="">All Disaster Types</option>
+                <option>Flood</option>
+                <option>Cyclone</option>
+                <option>Earthquake</option>
+                <option>Drought</option>
+                <option>Landslide</option>
+                <option>Wildfire</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table id="disasterTable">
+            <thead>
+              <tr>
+                <th>Event ID</th>
+                <th>Disaster Event</th>
+                <th>Classification</th>
+                <th>Deployment Date</th>
+                <th>Operational Zone</th>
+                <th>Affected Pop.</th>
+                <th>Severity</th>
+                <th>Status</th>
+                <th>Intelligence</th>
+              </tr>
+            </thead>
+            <tbody id="disasterBody">
+              <!-- Content injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="disasterModal">
+    <div class="modal-card" style="max-width: 700px;">
+      <div class="modal-header">
+        <h3>Register New Disaster Event</h3>
+        <button class="btn-close" onclick="closeModal('disasterModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Internal Event ID</label>
+            <input type="text" id="d_id" placeholder="e.g. D-2026-042">
+          </div>
+          <div class="form-group">
+            <label>Event Nomenclature</label>
+            <input type="text" id="d_name" placeholder="e.g. Bihar Monsoon Floods">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Disaster Classification</label>
+            <select id="d_type">
+              <option>Flood</option>
+              <option>Cyclone</option>
+              <option>Earthquake</option>
+              <option>Drought</option>
+              <option>Landslide</option>
+              <option>Wildfire</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Inception Date</label>
+            <input type="date" id="d_date">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Primary Impact Zone</label>
+            <input type="text" id="d_loc" placeholder="e.g. North Bihar, Saran District">
+          </div>
+          <div class="form-group">
+            <label>National Severity Level</label>
+            <select id="d_sev">
+              <option>Low</option>
+              <option>Moderate</option>
+              <option>High</option>
+              <option>Catastrophic</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Estimated Affected Population</label>
+            <input type="number" id="d_aff" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label>Operational Status</label>
+            <select id="d_status">
+              <option>Active</option>
+              <option>Monitoring</option>
+              <option>Contained</option>
+              <option>Closed</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Operational Summary</label>
+          <textarea id="d_desc" rows="3" placeholder="Enter high-level situational summary..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('disasterModal')">Cancel Operation</button>
+        <button class="btn btn-primary" onclick="registerDisaster()">Finalize Registration</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    const auth = requireAuth('disasters');
+    let disasters = [];
+    let activeStatusFilter = 'All';
+
+    if (auth) {
+      document.getElementById('sidebarRoot').innerHTML = buildSidebar('disasters');
+      document.getElementById('topbarRoot').innerHTML = buildTopbar('Disaster Registry', 'National Intelligence');
+      injectEmergencyTicker();
+
+      if (auth.session.role === 'agency') {
+        document.getElementById('adminActions').style.display = 'none';
+      }
+
+      async function loadDisasters() {
+        try {
+          const res = await fetch('http://localhost:5000/api/disasters');
+          disasters = await res.json();
+          applyFilters();
+          updateStats();
+          initCharts();
+        } catch (err) {
+          console.error(err);
+          // Demo fallback
+          disasters = [
+            { id: 1, name: 'Cyclone Biparjoy', type: 'Cyclone', date: '2026-05-10', location: 'Gujarat Coastal', affected: 124000, severity: 'Catastrophic', status: 'Active' },
+            { id: 2, name: 'Bihar Floods 2025', type: 'Flood', date: '2026-05-12', location: 'North Bihar', affected: 382000, severity: 'High', status: 'Active' },
+            { id: 3, name: 'Joshimath Landslide', type: 'Landslide', date: '2026-04-15', location: 'Uttarakhand', affected: 8400, severity: 'Moderate', status: 'Monitoring' }
+          ];
+          applyFilters();
+          updateStats();
+          initCharts();
+        }
+      }
+
+      function initCharts() {
+        // Type Distribution Chart
+        new Chart(document.getElementById('typeChart'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Flood', 'Cyclone', 'Earthquake', 'Other'],
+            datasets: [{
+              data: [45, 25, 15, 15],
+              backgroundColor: ['#1976D2', '#ef5350', '#FB8C00', '#bdbdbd'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } },
+            cutout: '70%',
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        });
+
+        // Impact Trends Chart
+        new Chart(document.getElementById('impactChart'), {
+          type: 'line',
+          data: {
+            labels: ['May 08', 'May 09', 'May 10', 'May 11', 'May 12', 'May 13', 'May 14'],
+            datasets: [{
+              label: 'Population Impacted',
+              data: [8000, 12000, 45000, 52000, 120000, 135000, 148000],
+              borderColor: '#ef5350',
+              backgroundColor: 'rgba(239, 83, 80, 0.1)',
+              fill: true,
+              tension: 0.4
+            }]
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+              x: { grid: { display: false } }
+            },
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        });
+      }
+
+      function applyFilters() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const type = document.getElementById('typeFilter').value;
+
+        const filtered = disasters.filter(d => {
+          const matchesQuery = d.name.toLowerCase().includes(query) || d.location.toLowerCase().includes(query) || d.id.toString().includes(query);
+          const matchesType = !type || d.type === type;
+          const matchesStatus = activeStatusFilter === 'All' || d.status === activeStatusFilter;
+          return matchesQuery && matchesType && matchesStatus;
+        });
+
+        renderTable(filtered);
+      }
+
+      function renderTable(data) {
+        const body = document.getElementById('disasterBody');
+        body.innerHTML = data.map((d, i) => `
+          <tr style="animation: fadeInUp 0.4s ${i * 0.05}s both;">
+            <td><span style="font-family: var(--font-mono); font-weight: 700; color: var(--primary);">#${d.id}</span></td>
+            <td><div style="font-weight: 700; color: var(--text-main);">${d.name}</div></td>
+            <td><span class="badge" style="background: #F1F5F9; color: var(--text-sec); border: 1px solid var(--border-lt);">${d.type}</span></td>
+            <td><span style="font-size: 0.85rem; color: var(--text-sec);">${d.date}</span></td>
+            <td><span style="font-size: 0.85rem; color: var(--text-sec);">📍 ${d.location}</span></td>
+            <td><strong style="color: var(--text-main);">${Number(d.affected).toLocaleString()}</strong></td>
+            <td><span class="badge ${d.severity === 'Catastrophic' ? 'badge-danger' : (d.severity === 'High' ? 'badge-warning' : 'badge-info')}">${d.severity}</span></td>
+            <td><span class="badge ${d.status === 'Active' ? 'badge-danger' : (d.status === 'Monitoring' ? 'badge-warning' : 'badge-success')}">${d.status}</span></td>
+            <td><button class="btn btn-outline btn-sm">Intel Report</button></td>
+          </tr>
+        `).join('');
+      }
+
+      window.filterByStatus = function (status, el) {
+        activeStatusFilter = status;
+        document.querySelectorAll('.table-card .btn-outline').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+        applyFilters();
+      };
+
+      window.registerDisaster = async function () {
+        const data = {
+          name: document.getElementById('d_name').value,
+          type: document.getElementById('d_type').value,
+          date: document.getElementById('d_date').value,
+          location: document.getElementById('d_loc').value,
+          affected: document.getElementById('d_aff').value,
+          severity: document.getElementById('d_sev').value,
+          status: document.getElementById('d_status').value,
+          description: document.getElementById('d_desc').value
+        };
+
+        // Replicating API POST logic
+        disasters.unshift({ id: Date.now(), ...data });
+        applyFilters();
+        updateStats();
+        closeModal('disasterModal');
+        showToast('Disaster event registered successfully', 'success');
+        logAudit('DISASTER_REGISTERED', `New event: ${data.name} in ${data.location}`);
+      };
+
+      function updateStats() {
+        animateCount(document.getElementById('stat-total'), disasters.length);
+        animateCount(document.getElementById('stat-active'), disasters.filter(d => d.status === 'Active').length);
+        animateCount(document.getElementById('stat-affected'), disasters.reduce((acc, d) => acc + Number(d.affected), 0));
+        const contained = disasters.filter(d => d.status === 'Contained' || d.status === 'Closed').length;
+        document.getElementById('stat-containment').textContent = disasters.length ? Math.round((contained / disasters.length) * 100) + '%' : '0%';
+      }
+
+      loadDisasters();
+    }
+  </script>
+</body>
+
+</html>

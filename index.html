@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LIFELINE — National Emergency Operations & Coordination Portal</title>
+  <meta name="description"
+    content="Official National Emergency Information System for real-time disaster monitoring, response coordination, and crisis intelligence.">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Landing Page Specific Enhancements */
+    .landing-hero {
+      min-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 100px 24px;
+      position: relative;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 50%, rgba(158, 27, 50, 0.05) 0%, transparent 70%);
+      background-color: #F8FAFC;
+    }
+
+    .hero-content {
+      max-width: 900px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      z-index: 5;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: white;
+      border: 1px solid var(--border-lt);
+      border-radius: 30px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--primary);
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .hero-badge span {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .landing-hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      color: var(--text-main);
+      letter-spacing: -2px;
+      margin-bottom: 24px;
+    }
+
+    .landing-hero h1 span {
+      display: block;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-alt) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-desc {
+      font-size: 1.25rem;
+      color: var(--text-sec);
+      max-width: 700px;
+      margin-bottom: 40px;
+      line-height: 1.6;
+    }
+
+    .hero-btns {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+    }
+
+    .section-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .floating-stats {
+      margin-top: -60px;
+      position: relative;
+      z-index: 20;
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="tickerRoot"></div>
+
+  <!-- ── HERO SECTION ── -->
+  <header class="landing-hero">
+    <div class="hero-content">
+      <div class="hero-badge">
+        GOVERNMENT OF INDIA <span>•</span> EMERGENCY OPERATIONS CENTER
+      </div>
+      <h1>
+        National Crisis &
+        <span>Disaster Intelligence</span>
+      </h1>
+      <p class="hero-desc">
+        Empowering first responders and decision-makers with real-time situational awareness,
+        seamless coordination, and predictive crisis intelligence.
+      </p>
+      <div class="hero-btns">
+        <a href="login.html" class="btn btn-primary" style="padding: 14px 32px; font-size: 1rem;">
+          <span>Enter Command Center</span>
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-left: 8px;">
+            <path d="M5 12h14m-7-7 7 7-7 7" />
+          </svg>
+        </a>
+        <a href="#features" class="btn btn-outline" style="padding: 14px 32px; font-size: 1rem;">Operational Overview</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── STATS SECTION ── -->
+  <div class="section-container floating-stats">
+    <div class="stat-grid">
+      <div class="stat-card critical">
+        <div class="stat-label">Active Incidents</div>
+        <div class="stat-val" id="stat-incidents">0</div>
+        <div class="stat-sub">🔴 14 Critical Escalations</div>
+        <div class="stat-icon">🚨</div>
+      </div>
+      <div class="stat-card warning">
+        <div class="stat-label">Relief Camps</div>
+        <div class="stat-val" id="stat-camps">0</div>
+        <div class="stat-sub">⛺ 12,400+ Persons Sheltered</div>
+        <div class="stat-icon">🏕️</div>
+      </div>
+      <div class="stat-card success">
+        <div class="stat-label">Responders Live</div>
+        <div class="stat-val" id="stat-responders">0</div>
+        <div class="stat-sub">🟢 NDRF, SDRF, Local Auth.</div>
+        <div class="stat-icon">👥</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Resource Deployment</div>
+        <div class="stat-val" id="stat-resources">0%</div>
+        <div class="stat-sub">📦 Logistics Active</div>
+        <div class="stat-icon">🚛</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CAPABILITIES ── -->
+  <div class="section-container" style="padding: 100px 0;">
+    <section id="features">
+      <div class="page-header" style="justify-content: center; text-align: center; margin-bottom: 60px;">
+        <div class="page-header-info">
+          <h2 style="font-size: 2.5rem;">Enterprise Operational Modules</h2>
+          <p style="font-size: 1.1rem;">Comprehensive command and control capabilities for national emergency management.</p>
+        </div>
+      </div>
+
+      <div class="stat-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
+        <div class="stat-card">
+          <div class="stat-icon" style="position:static; margin-bottom:16px;">🛰️</div>
+          <div class="stat-label" style="font-size:1rem; color:var(--text-main);">Crisis Intelligence</div>
+          <p style="font-size:0.9rem; color:var(--text-sec); line-height:1.7;">Real-time satellite and IoT sensor
+            integration for early warning and situational awareness.</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="position:static; margin-bottom:16px;">🏢</div>
+          <div class="stat-label" style="font-size:1rem; color:var(--text-main);">Agency Coordination</div>
+          <p style="font-size:0.9rem; color:var(--text-sec); line-height:1.7;">Unified communication bridge between
+            NDRF, SDRF, Police, and Medical services.</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="position:static; margin-bottom:16px;">📋</div>
+          <div class="stat-label" style="font-size:1rem; color:var(--text-main);">Resource Management</div>
+          <p style="font-size:0.9rem; color:var(--text-sec); line-height:1.7;">AI-driven inventory tracking and
+            optimized supply chain logistics for relief materials.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ── ANALYTICS ── -->
+  <div class="section-container" style="padding-bottom: 100px;">
+    <section>
+      <div class="table-card" style="margin-bottom: 0;">
+        <div class="table-card-header" style="justify-content: center; text-align: center; padding: 32px;">
+          <h3 style="font-size: 1.5rem;">National Emergency Readiness Index</h3>
+        </div>
+        <div style="padding: 40px; height: 450px; display: flex; align-items: center; justify-content: center;">
+          <canvas id="readinessChart"></canvas>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ── ACCESS ── -->
+  <div class="section-container" style="padding-bottom: 100px;">
+    <section style="background: white; border: 1px solid var(--border-lt); padding: 80px 40px; border-radius: var(--radius-lg);">
+      <div class="page-header" style="justify-content: center; text-align: center; margin-bottom: 40px;">
+        <div class="page-header-info">
+          <h2 style="font-size: 2rem;">Secure Operational Access</h2>
+          <p>Role-based access control for multi-agency personnel.</p>
+        </div>
+      </div>
+
+      <div class="stat-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+        <div class="stat-card">
+          <div class="stat-icon" style="position:static; margin-bottom:16px; background: #FFF5F5; color: var(--primary);">🛡️</div>
+          <div class="stat-label">National Admin</div>
+          <p style="font-size:0.85rem; color:var(--text-sec);">Full spectrum oversight of national resources.</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="position:static; margin-bottom:16px; background: #FFF5F5; color: var(--primary);">🏢</div>
+          <div class="stat-label">Agency Officer</div>
+          <p style="font-size:0.85rem; color:var(--text-sec);">Operational management of agency-specific efforts.</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="position:static; margin-bottom:16px; background: #FFF5F5; color: var(--primary);">📋</div>
+          <div class="stat-label">Field Commander</div>
+          <p style="font-size:0.85rem; color:var(--text-sec);">On-ground coordination and real-time reporting.</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="position:static; margin-bottom:16px; background: #FFF5F5; color: var(--primary);">🔬</div>
+          <div class="stat-label">Analyst</div>
+          <p style="font-size:0.85rem; color:var(--text-sec);">Intelligence gathering for policy support.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ── FOOTER ── -->
+  <footer style="background: var(--bg-side); color: white; padding: 80px 0; margin-top: 40px;">
+    <div class="section-container">
+      <div style="text-align: center; max-width: 800px; margin: 0 auto;">
+        <div style="font-family: var(--font-display); font-size: 2rem; font-weight: 800; margin-bottom: 8px;">LIFELINE</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 40px;">
+          National Disaster Management Infrastructure
+        </div>
+        <div style="display: flex; justify-content: center; gap: 32px; margin-bottom: 48px; font-weight: 500;">
+          <a href="#" style="color: white; text-decoration: none; opacity: 0.8;">Protocols</a>
+          <a href="#" style="color: white; text-decoration: none; opacity: 0.8;">Privacy</a>
+          <a href="#" style="color: white; text-decoration: none; opacity: 0.8;">Contacts</a>
+          <a href="#" style="color: white; text-decoration: none; opacity: 0.8;">System Status</a>
+        </div>
+        <div style="font-size: 0.75rem; opacity: 0.5; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 32px;">
+          &copy; 2026 Ministry of Home Affairs. All Rights Reserved. • Designed for National Security.
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="shared.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      injectEmergencyTicker();
+      animateCount(document.getElementById('stat-incidents'), 142);
+      animateCount(document.getElementById('stat-camps'), 87);
+      animateCount(document.getElementById('stat-responders'), 4832);
+      setTimeout(() => { if (document.getElementById('stat-resources')) document.getElementById('stat-resources').textContent = '84%'; }, 500);
+      initReadinessChart();
+    });
+
+    function initReadinessChart() {
+      new Chart(document.getElementById('readinessChart'), {
+        type: 'radar',
+        data: {
+          labels: ['Response Speed', 'Resource Depth', 'Agency Sync', 'Tech Integration', 'Public Awareness', 'Medical Capacity'],
+          datasets: [{
+            label: 'National Index',
+            data: [85, 92, 78, 95, 70, 88],
+            fill: true,
+            backgroundColor: 'rgba(158, 27, 50, 0.2)',
+            borderColor: '#9E1B32',
+            pointBackgroundColor: '#9E1B32',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: '#9E1B32'
+          }]
+        },
+        options: {
+          elements: { line: { borderWidth: 3 } },
+          scales: {
+            r: {
+              angleLines: { color: 'rgba(0,0,0,0.05)' },
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              suggestedMin: 0, suggestedMax: 100,
+              ticks: { display: false }
+            }
+          },
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      });
+    }
+  </script>
+</body>
+
+</html>

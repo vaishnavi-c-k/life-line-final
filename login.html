@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secure Access Portal — LIFELINE National Emergency System</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    body {
+      display: flex;
+      min-height: 100vh;
+      background: #1E1B1B; /* Dark earth black */
+    }
+
+    .auth-left {
+      flex: 1;
+      background: linear-gradient(135deg, #1E1B1B 0%, #2D1A1A 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 60px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .auth-left::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url('national_disaster_scene_1778792938195.png') center/cover no-repeat;
+      opacity: 0.8;
+      z-index: 1;
+    }
+
+    .auth-left::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, rgba(30, 27, 27, 0.95) 0%, rgba(30, 27, 27, 0.4) 50%, rgba(30, 27, 27, 0.95) 100%);
+      z-index: 2;
+    }
+
+    .auth-left-content {
+      position: relative;
+      z-index: 5;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .auth-logo {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 80px;
+    }
+
+    .auth-logo .emblem {
+      width: 48px;
+      height: 48px;
+      background: var(--primary);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: white;
+      font-weight: 800;
+      box-shadow: 0 0 20px rgba(158, 27, 50, 0.4);
+    }
+
+    .auth-logo .text {
+      color: white;
+    }
+
+    .auth-logo .text strong {
+      display: block;
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      letter-spacing: -1px;
+    }
+
+    .auth-logo .text small {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      opacity: 0.6;
+    }
+
+    .auth-headline {
+      font-family: var(--font-display);
+      font-size: 3.5rem;
+      font-weight: 800;
+      color: white;
+      line-height: 1.1;
+      letter-spacing: -2px;
+      margin-bottom: 24px;
+    }
+
+    .auth-headline span {
+      color: var(--primary);
+    }
+
+    .auth-sub {
+      font-size: 1.1rem;
+      color: #94A3B8;
+      max-width: 480px;
+      line-height: 1.6;
+      margin-bottom: 48px;
+    }
+
+    .auth-stats {
+      display: flex;
+      gap: 40px;
+    }
+
+    .auth-stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .auth-stat-val {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: white;
+      font-family: var(--font-display);
+    }
+
+    .auth-stat-label {
+      font-size: 0.7rem;
+      color: #64748B;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 700;
+    }
+
+    .auth-right {
+      width: 540px;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      padding: 60px 80px;
+      position: relative;
+      z-index: 10;
+      box-shadow: -20px 0 60px rgba(0, 0, 0, 0.2);
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 380px;
+      margin: auto;
+    }
+
+    .login-header {
+      margin-bottom: 40px;
+    }
+
+    .login-header h2 {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .login-header p {
+      color: var(--text-sec);
+      font-size: 0.95rem;
+    }
+
+    .role-selector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 32px;
+    }
+
+    .role-btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-lt);
+      background: var(--bg-input);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .role-btn:hover {
+      border-color: var(--primary);
+      background: white;
+    }
+
+    .role-btn.active {
+      border-color: var(--primary);
+      background: #E3F2FD;
+      box-shadow: 0 4px 6px rgba(25, 118, 210, 0.1);
+    }
+
+    .role-btn .icon {
+      font-size: 1.25rem;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .role-btn span {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-sec);
+    }
+
+    .role-btn.active span {
+      color: var(--primary);
+    }
+
+    .auth-footer {
+      margin-top: auto;
+      padding-top: 40px;
+      border-top: 1px solid var(--border-lt);
+      text-align: center;
+    }
+
+    .auth-footer p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1024px) {
+      .auth-left {
+        display: none;
+      }
+
+      .auth-right {
+        width: 100%;
+        padding: 40px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="auth-left">
+    <div class="auth-left-content">
+      <div class="auth-logo">
+        <div class="emblem">L</div>
+        <div class="text">
+          <strong>LIFELINE</strong>
+          <small>National Crisis Network</small>
+        </div>
+      </div>
+
+      <div class="auth-headline">Secure Gate to<br><span>National Security</span></div>
+      <p class="auth-sub">Enter the command interface for India's unified disaster management and response ecosystem.
+      </p>
+
+      <div class="auth-stats">
+        <div class="auth-stat-item">
+          <div class="auth-stat-val">142</div>
+          <div class="auth-stat-label">Active Incidents</div>
+        </div>
+        <div class="auth-stat-item">
+          <div class="auth-stat-val">47</div>
+          <div class="auth-stat-label">Agencies Online</div>
+        </div>
+        <div class="auth-stat-item">
+          <div class="auth-stat-val">99.9%</div>
+          <div class="auth-stat-label">System Uptime</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="auth-right">
+    <div class="login-card">
+      <div class="login-header">
+        <h2>Officer Sign In</h2>
+        <p>Access your operational terminal.</p>
+      </div>
+
+      <div class="role-selector">
+        <div class="role-btn active" data-role="admin" onclick="setRole('admin', this)">
+          <span class="icon">🛡️</span>
+          <span>Admin</span>
+        </div>
+        <div class="role-btn" data-role="coordinator" onclick="setRole('coordinator', this)">
+          <span class="icon">📋</span>
+          <span>Coord</span>
+        </div>
+        <div class="role-btn" data-role="agency" onclick="setRole('agency', this)">
+          <span class="icon">🏢</span>
+          <span>Agency</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Officer credentials</label>
+        <input type="text" id="uid" placeholder="Officer ID / Username" value="ADMIN001">
+      </div>
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label>Security Key</label>
+        <input type="password" id="pwd" placeholder="Enter password" value="admin123">
+      </div>
+      <div style="text-align: right; margin-bottom: 32px;">
+        <a href="#" style="font-size: 0.82rem; color: var(--primary); text-decoration: none; font-weight: 600;">Forgot
+          Key?</a>
+      </div>
+
+      <button class="btn btn-primary w-full" style="padding: 14px; font-size: 1rem;" onclick="handleLogin()">
+        Authenticate & Enter
+      </button>
+
+      <div
+        style="margin-top: 32px; padding: 16px; background: #F8FAFC; border-radius: var(--radius-md); border: 1px solid var(--border-lt);">
+        <div
+          style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 8px;">
+          Security Notice</div>
+        <p style="font-size: 0.78rem; color: var(--text-sec); line-height: 1.5;">Unauthorized access to this terminal is
+          a violation of the National Security Protocol Act. All IP addresses are logged.</p>
+      </div>
+    </div>
+
+    <div class="auth-footer">
+      <p>&copy; 2026 Ministry of Home Affairs. All Rights Reserved.<br>Managed by National Informatics Centre.</p>
+    </div>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    let currentRole = 'admin';
+
+    function setRole(role, el) {
+      currentRole = role;
+      document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+
+      // Autofill demo for convenience (as in original)
+      if (role === 'admin') { document.getElementById('uid').value = 'ADMIN001'; document.getElementById('pwd').value = 'admin123'; }
+      if (role === 'coordinator') { document.getElementById('uid').value = 'COORD001'; document.getElementById('pwd').value = 'coord123'; }
+      if (role === 'agency') { document.getElementById('uid').value = 'AGN001'; document.getElementById('pwd').value = 'agency123'; }
+    }
+
+    function handleLogin() {
+      const uid = document.getElementById('uid').value;
+      const pwd = document.getElementById('pwd').value;
+
+      // Use original login logic from shared.js context if possible, or replicate here
+      // Replicating for speed and isolation
+      if (!uid || !pwd) { alert('Please enter credentials'); return; }
+
+      const session = {
+        role: currentRole,
+        name: currentRole === 'admin' ? 'Administrator' : (currentRole === 'coordinator' ? 'Coordinator' : 'Agency Officer'),
+        uid: uid,
+        ts: Date.now()
+      };
+
+      sessionStorage.setItem('lifeline_session', JSON.stringify(session));
+      window.location.href = 'dashboard.html';
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Victim Registry — LIFELINE National Emergency Operations</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Victim Registry Specific Styling */
+    .victim-table-wrap {
+      background: white;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-lt);
+      box-shadow: var(--shadow-sm);
+      margin-top: 24px;
+      overflow: hidden;
+    }
+
+    .registry-filters {
+      padding: 20px 24px;
+      background: #F8FAFC;
+      border-bottom: 1px solid var(--border-lt);
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .registry-stats-compact {
+      display: flex;
+      gap: 24px;
+      padding: 12px 24px;
+      background: white;
+      border-bottom: 1px solid var(--border-lt);
+    }
+
+    .r-stat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      color: var(--text-sec);
+      font-weight: 600;
+    }
+
+    .r-stat span {
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .r-stat .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .id-cell {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="sidebarRoot"></div>
+  <div class="main">
+    <div id="topbarRoot"></div>
+    <div id="tickerRoot"></div>
+
+    <div class="content">
+      <div class="page-header">
+        <div class="page-header-info">
+          <h2>Victim Intelligence Registry</h2>
+          <p>Unified tracking and management system for displaced persons, casualties, and missing individuals.</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-outline" onclick="exportRegistry()">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-8-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Export Intel
+          </button>
+          <button class="btn btn-primary" onclick="openModal('victimModal')">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M12 4v16m8-8H4" />
+            </svg>
+            Register Individual
+          </button>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Individuals</div>
+          <div class="stat-val" id="stat-total">0</div>
+          <div class="stat-sub">Registered across all zones</div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-label">Currently Sheltered</div>
+          <div class="stat-val" id="stat-sheltered">0</div>
+          <div class="stat-sub">In verified relief camps</div>
+        </div>
+        <div class="stat-card critical">
+          <div class="stat-label">Critical Injuries</div>
+          <div class="stat-val" id="stat-critical">0</div>
+          <div class="stat-sub">Requiring urgent medical evac</div>
+        </div>
+        <div class="stat-card warning">
+          <div class="stat-label">Missing Persons</div>
+          <div class="stat-val" id="stat-missing">0</div>
+          <div class="stat-sub">Active search operations</div>
+        </div>
+      </div>
+
+      <div class="two-col" style="grid-template-columns: 1fr 1fr; align-items: stretch; margin-bottom: 24px;">
+        <div class="table-card" style="margin-bottom: 0;">
+          <div class="table-card-header">
+            <h3>Triage Classification</h3>
+          </div>
+          <div style="padding: 24px; height: 280px;">
+            <canvas id="triageChart"></canvas>
+          </div>
+        </div>
+
+        <div class="table-card" style="margin-bottom: 0;">
+          <div class="table-card-header">
+            <h3>Operational Status Mix</h3>
+          </div>
+          <div style="padding: 24px; height: 280px;">
+            <canvas id="statusMixChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="victim-table-wrap">
+        <div class="registry-stats-compact">
+          <div class="r-stat">
+            <div class="dot" style="background: var(--green);"></div> Located: <span id="c-located">0</span>
+          </div>
+          <div class="r-stat">
+            <div class="dot" style="background: var(--orange);"></div> Missing: <span id="c-missing">0</span>
+          </div>
+          <div class="r-stat">
+            <div class="dot" style="background: var(--red);"></div> Critical: <span id="c-critical">0</span>
+          </div>
+        </div>
+
+        <div class="registry-filters">
+          <div class="form-group" style="flex: 2; margin-bottom: 0;">
+            <input type="text" id="searchInput" placeholder="Search by name, ID, or disaster reference..."
+              oninput="applyFilters()">
+          </div>
+          <div class="form-group" style="flex: 1; margin-bottom: 0;">
+            <select id="injFilter" onchange="applyFilters()">
+              <option value="">All Injury Levels</option>
+              <option>None</option>
+              <option>Minor</option>
+              <option>Moderate</option>
+              <option>Critical</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1; margin-bottom: 0;">
+            <select id="statusFilter" onchange="applyFilters()">
+              <option value="">All Operational Status</option>
+              <option>Located</option>
+              <option>Missing</option>
+              <option>Deceased</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Registry ID</th>
+                <th>Individual Name</th>
+                <th>Age / Sex</th>
+                <th>Contact Intel</th>
+                <th>Event Reference</th>
+                <th>Operational Status</th>
+                <th>Injury Level</th>
+                <th>Assigned Facility</th>
+                <th>Intel</th>
+              </tr>
+            </thead>
+            <tbody id="victimBody">
+              <!-- Content injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="victimModal">
+    <div class="modal-card" style="max-width: 700px;">
+      <div class="modal-header">
+        <h3>Individual Registry Form</h3>
+        <button class="btn-close" onclick="closeModal('victimModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Registry ID</label>
+            <input type="text" id="v_id" placeholder="e.g. V-2026-0042">
+          </div>
+          <div class="form-group">
+            <label>Full Nomenclature (Name)</label>
+            <input type="text" id="v_name" placeholder="Enter full official name">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Age Profile</label>
+            <input type="number" id="v_age" placeholder="Years">
+          </div>
+          <div class="form-group">
+            <label>Gender Identity</label>
+            <select id="v_gender">
+              <option>Male</option>
+              <option>Female</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Communication Intel (Contact)</label>
+            <input type="text" id="v_contact" placeholder="10-digit primary contact">
+          </div>
+          <div class="form-group">
+            <label>Operational Status</label>
+            <select id="v_status">
+              <option>Located</option>
+              <option>Missing</option>
+              <option>Deceased</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Disaster Event Reference (ID)</label>
+            <input type="number" id="v_disaster" placeholder="Event ID">
+          </div>
+          <div class="form-group">
+            <label>Medical Triage Level</label>
+            <select id="v_injury">
+              <option>None</option>
+              <option>Minor</option>
+              <option>Moderate</option>
+              <option>Critical</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Assigned Relief Facility (Camp ID)</label>
+          <input type="text" id="v_camp" placeholder="e.g. C-42 / Not Assigned">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('victimModal')">Abort Registration</button>
+        <button class="btn btn-primary" onclick="registerVictim()">Commit to Registry</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    const auth = requireAuth('victims');
+    let victims = [];
+
+    if (auth) {
+      document.getElementById('sidebarRoot').innerHTML = buildSidebar('victims');
+      document.getElementById('topbarRoot').innerHTML = buildTopbar('Victim Registry', 'National Intelligence');
+      injectEmergencyTicker();
+
+      async function loadVictims() {
+        try {
+          const res = await fetch('http://localhost:5000/api/victims');
+          victims = await res.json();
+          applyFilters();
+          updateStats();
+          initCharts();
+        } catch (err) {
+          console.error(err);
+          // Demo fallback
+          victims = [
+            { victim_id: 'V-2026-001', name: 'Rajesh Kumar', age: 34, gender: 'Male', phone: '9876543210', disaster_name: 'Cyclone Biparjoy', status: 'Located', injury_status: 'Minor', camp_name: 'Bhuj Secondary Camp' },
+            { victim_id: 'V-2026-042', name: 'Amit Singh', age: 28, gender: 'Male', phone: '9123456789', disaster_name: 'Bihar Floods', status: 'Missing', injury_status: 'None', camp_name: null },
+            { victim_id: 'V-2026-018', name: 'Priya Sharma', age: 22, gender: 'Female', phone: '9988776655', disaster_name: 'Joshimath Landslide', status: 'Located', injury_status: 'Critical', camp_name: 'Sector 4 Medical Hub' }
+          ];
+          applyFilters();
+          updateStats();
+          initCharts();
+        }
+      }
+
+      function initCharts() {
+        // Triage Chart
+        new Chart(document.getElementById('triageChart'), {
+          type: 'bar',
+          data: {
+            labels: ['Critical', 'Moderate', 'Minor', 'None'],
+            datasets: [{
+              label: 'Individuals',
+              data: [142, 385, 920, 1200],
+              backgroundColor: ['#ef5350', '#ffa726', '#42a5f5', '#66bb6a'],
+              borderRadius: 4
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+              y: { grid: { display: false } }
+            },
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        });
+
+        // Status Mix Chart
+        new Chart(document.getElementById('statusMixChart'), {
+          type: 'polarArea',
+          data: {
+            labels: ['Located', 'Missing', 'Relocated', 'Deceased'],
+            datasets: [{
+              data: [2400, 450, 1200, 85],
+              backgroundColor: ['#66bb6a', '#ffa726', '#42a5f5', '#ef5350'],
+              borderWidth: 1
+            }]
+          },
+          options: {
+            plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } },
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        });
+      }
+
+      function applyFilters() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const inj = document.getElementById('injFilter').value;
+        const status = document.getElementById('statusFilter').value;
+
+        const filtered = victims.filter(v => {
+          const matchesQuery = v.name.toLowerCase().includes(query) || v.victim_id.toLowerCase().includes(query) || (v.disaster_name && v.disaster_name.toLowerCase().includes(query));
+          const matchesInj = !inj || v.injury_status === inj;
+          const matchesStatus = !status || v.status === status;
+          return matchesQuery && matchesInj && matchesStatus;
+        });
+
+        renderTable(filtered);
+      }
+
+      function renderTable(data) {
+        const body = document.getElementById('victimBody');
+        body.innerHTML = data.map((v, i) => `
+          <tr style="animation: fadeInUp 0.4s ${i * 0.05}s both;">
+            <td><span class="id-cell">#${v.victim_id}</span></td>
+            <td><div style="font-weight: 700; color: var(--text-main);">${v.name}</div></td>
+            <td><span style="font-size: 0.85rem; color: var(--text-sec);">${v.age} / ${v.gender}</span></td>
+            <td><span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-sec);">${v.phone}</span></td>
+            <td><span class="badge" style="background: #F1F5F9; color: var(--text-sec);">${v.disaster_name || 'N/A'}</span></td>
+            <td><span class="badge ${v.status === 'Missing' ? 'badge-warning' : (v.status === 'Deceased' ? 'badge-danger' : 'badge-success')}">${v.status}</span></td>
+            <td><span class="badge ${v.injury_status === 'Critical' ? 'badge-danger' : (v.injury_status === 'Moderate' ? 'badge-warning' : (v.injury_status === 'Minor' ? 'badge-info' : 'badge-active'))}">${v.injury_status}</span></td>
+            <td><span style="font-size: 0.8rem; color: var(--text-sec); font-weight: 600;">${v.camp_name || '<span style="opacity: 0.5;">Unassigned</span>'}</span></td>
+            <td>
+              <div style="display: flex; gap: 4px;">
+                <button class="btn btn-outline btn-sm">Intel</button>
+                <button class="btn btn-outline btn-sm" style="color: var(--red); border-color: #FEE2E2;" onclick="removeVictim('${v.victim_id}')">✕</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      window.registerVictim = async function () {
+        const data = {
+          victim_id: document.getElementById('v_id').value,
+          name: document.getElementById('v_name').value,
+          age: document.getElementById('v_age').value,
+          gender: document.getElementById('v_gender').value,
+          phone: document.getElementById('v_contact').value,
+          status: document.getElementById('v_status').value,
+          injury_status: document.getElementById('v_injury').value,
+          disaster_id: document.getElementById('v_disaster').value,
+          camp_id: document.getElementById('v_camp').value
+        };
+
+        // Mocking API call
+        victims.unshift({ disaster_name: 'New Entry', ...data });
+        applyFilters();
+        updateStats();
+        closeModal('victimModal');
+        showToast('Individual committed to registry', 'success');
+        logAudit('VICTIM_REGISTERED', `New entry: ${data.name} (ID: ${data.victim_id})`);
+      };
+
+      window.removeVictim = function (id) {
+        victims = victims.filter(v => v.victim_id !== id);
+        applyFilters();
+        updateStats();
+        showToast('Record purged from registry', 'success');
+      };
+
+      window.exportRegistry = function () {
+        showToast('Generating intelligence report (CSV)...', 'success');
+      };
+
+      function updateStats() {
+        animateCount(document.getElementById('stat-total'), victims.length);
+        animateCount(document.getElementById('stat-sheltered'), victims.filter(v => v.camp_name).length);
+        animateCount(document.getElementById('stat-critical'), victims.filter(v => v.injury_status === 'Critical').length);
+        animateCount(document.getElementById('stat-missing'), victims.filter(v => v.status === 'Missing').length);
+
+        document.getElementById('c-located').textContent = victims.filter(v => v.status === 'Located').length;
+        document.getElementById('c-missing').textContent = victims.filter(v => v.status === 'Missing').length;
+        document.getElementById('c-critical').textContent = victims.filter(v => v.injury_status === 'Critical').length;
+      }
+
+      loadVictims();
+    }
+  </script>
+</body>
+
+</html>

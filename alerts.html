@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alert Management Center — LIFELINE National Emergency Operations</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    /* Alert Center Specific Styling */
+    .alert-management-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      margin-top: 24px;
+    }
+
+    .alert-card-premium {
+      background: white;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-lt);
+      padding: 24px;
+      display: flex;
+      gap: 24px;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .alert-card-premium:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+      transform: translateX(4px);
+    }
+
+    .alert-status-stripe {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 6px;
+    }
+
+    .alert-status-stripe.red {
+      background: var(--red);
+    }
+
+    .alert-status-stripe.orange {
+      background: var(--orange);
+    }
+
+    .alert-status-stripe.yellow {
+      background: var(--gold);
+    }
+
+    .alert-status-stripe.green {
+      background: var(--green);
+    }
+
+    .alert-icon-lg {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .alert-icon-lg.red {
+      background: #FEE2E2;
+      color: var(--red);
+    }
+
+    .alert-icon-lg.orange {
+      background: #FFEDD5;
+      color: var(--orange);
+    }
+
+    .alert-main {
+      flex: 1;
+    }
+
+    .alert-title-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .alert-title-row h3 {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .alert-meta {
+      display: flex;
+      gap: 16px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .alert-meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .alert-message {
+      font-size: 0.9rem;
+      color: var(--text-sec);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .alert-actions {
+      display: flex;
+      gap: 12px;
+      border-top: 1px solid var(--border-lt);
+      padding-top: 16px;
+    }
+
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      background: white;
+      padding: 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-lt);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="sidebarRoot"></div>
+  <div class="main">
+    <div id="topbarRoot"></div>
+    <div id="tickerRoot"></div>
+
+    <div class="content">
+      <div class="page-header">
+        <div class="page-header-info">
+          <h2>National Alert Center</h2>
+          <p>Multi-channel emergency broadcast management and early warning coordination.</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-primary" onclick="openModal('alertModal')">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M12 4v16m8-8H4" />
+            </svg>
+            Issue New Alert
+          </button>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Active Alerts</div>
+          <div class="stat-val" id="stat-total">0</div>
+          <div class="stat-sub">Across 14 districts</div>
+        </div>
+        <div class="stat-card critical">
+          <div class="stat-label">Red Alerts</div>
+          <div class="stat-val" id="stat-red">0</div>
+          <div class="stat-sub">Requires NOC clearance</div>
+        </div>
+        <div class="stat-card warning">
+          <div class="stat-label">Orange Alerts</div>
+          <div class="stat-val" id="stat-orange">0</div>
+          <div class="stat-sub">Monitoring escalation</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Dispatched Today</div>
+          <div class="stat-val" id="stat-today">0</div>
+          <div class="stat-sub">Via Cell Broadcast / SMS</div>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <button class="btn btn-outline btn-sm active" onclick="filterAlerts('all')">All Alerts</button>
+        <button class="btn btn-outline btn-sm" onclick="filterAlerts('Red')">🔴 Red</button>
+        <button class="btn btn-outline btn-sm" onclick="filterAlerts('Orange')">🟠 Orange</button>
+        <button class="btn btn-outline btn-sm" onclick="filterAlerts('Yellow')">🟡 Yellow</button>
+        <div style="flex: 1;"></div>
+        <input type="text" placeholder="Search alerts..." class="btn-sm"
+          style="border: 1px solid var(--border-lt); border-radius: 4px; padding: 4px 12px; font-size: 0.8rem;">
+      </div>
+
+      <div id="alertList" class="alert-management-grid">
+        <!-- Alerts will be injected here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="alertModal">
+    <div class="modal-card" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3>Issue New National Alert</h3>
+        <button class="btn-close" onclick="closeModal('alertModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Alert Severity Level</label>
+          <select id="al_level">
+            <option value="Red">🔴 Level 1: Red (Extreme)</option>
+            <option value="Orange">🟠 Level 2: Orange (High)</option>
+            <option value="Yellow">🟡 Level 3: Yellow (Moderate)</option>
+            <option value="Green">🟢 Level 4: Green (Advisory)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Alert Title</label>
+          <input type="text" id="al_title" placeholder="e.g. Flash Flood Warning">
+        </div>
+        <div class="form-group">
+          <label>Operational Message</label>
+          <textarea id="al_msg" rows="4" placeholder="Enter detailed emergency instructions..."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Target Region</label>
+            <input type="text" id="al_region" placeholder="e.g. Coastal Gujarat">
+          </div>
+          <div class="form-group">
+            <label>Issuing Authority</label>
+            <input type="text" id="al_by" placeholder="e.g. NDMA HQ">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('alertModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="issueAlert()">Dispatch Alert</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    const auth = requireAuth('alerts');
+    let alerts = [];
+
+    if (auth) {
+      document.getElementById('sidebarRoot').innerHTML = buildSidebar('alerts');
+      document.getElementById('topbarRoot').innerHTML = buildTopbar('Alert Center', 'Management');
+      injectEmergencyTicker();
+
+      async function loadAlerts() {
+        try {
+          const res = await fetch("http://localhost:5000/api/alerts");
+          alerts = await res.json();
+          renderAlerts();
+          updateStats();
+        } catch (err) {
+          console.error(err);
+          // Demo fallback
+          alerts = [
+            { alert_id: 1, severity: 'Red', title: 'Cyclone Biparjoy Red Alert', message: 'Extreme wind speeds expected. Evacuation mandatory for low-lying areas of Kutch and Dwarka.', location: 'Coastal Gujarat', issued_at: new Date(), issued_by: 'NDMA HQ' },
+            { alert_id: 2, severity: 'Orange', title: 'Bihar Monsoon Flood Warning', message: 'Kosi river rising rapidly. Secondary embankments under pressure. Agencies on high alert.', location: 'North Bihar', issued_at: new Date(), issued_by: 'CWC Bihar' }
+          ];
+          renderAlerts();
+          updateStats();
+        }
+      }
+
+      function renderAlerts(filter = 'all') {
+        const list = document.getElementById('alertList');
+        const filtered = filter === 'all' ? alerts : alerts.filter(a => a.severity === filter);
+
+        list.innerHTML = filtered.map(a => `
+          <div class="alert-card-premium">
+            <div class="alert-status-stripe ${a.severity.toLowerCase()}"></div>
+            <div class="alert-icon-lg ${a.severity.toLowerCase()}">
+              ${a.severity === 'Red' ? '🚨' : '⚠️'}
+            </div>
+            <div class="alert-main">
+              <div class="alert-title-row">
+                <h3>${a.title}</h3>
+                <span class="badge ${a.severity === 'Red' ? 'badge-danger' : 'badge-warning'}">${a.severity.toUpperCase()} ALERT</span>
+              </div>
+              <div class="alert-meta">
+                <span>📍 ${a.location}</span>
+                <span>🕒 ${new Date(a.issued_at).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                <span>👤 Auth: ${a.issued_by}</span>
+              </div>
+              <div class="alert-message">${a.message}</div>
+              <div class="alert-actions">
+                <button class="btn btn-outline btn-sm">Dispatch Logs</button>
+                <button class="btn btn-outline btn-sm" onclick="resolveAlert(${a.alert_id})">Mark Resolved</button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      function updateStats() {
+        animateCount(document.getElementById('stat-total'), alerts.length);
+        animateCount(document.getElementById('stat-red'), alerts.filter(a => a.severity === 'Red').length);
+        animateCount(document.getElementById('stat-orange'), alerts.filter(a => a.severity === 'Orange').length);
+        animateCount(document.getElementById('stat-today'), alerts.length);
+      }
+
+      window.issueAlert = async function () {
+        const data = {
+          title: document.getElementById('al_title').value,
+          message: document.getElementById('al_msg').value,
+          severity: document.getElementById('al_level').value,
+          location: document.getElementById('al_region').value,
+          issued_by: document.getElementById('al_by').value,
+          issued_at: new Date()
+        };
+
+        // Mocking API call
+        alerts.unshift({ alert_id: Date.now(), ...data });
+        renderAlerts();
+        updateStats();
+        closeModal('alertModal');
+        showToast('Alert dispatched successfully', 'success');
+        logAudit('ALERT_ISSUED', `New ${data.severity} alert: ${data.title}`);
+      };
+
+      window.resolveAlert = function (id) {
+        alerts = alerts.filter(a => a.alert_id !== id);
+        renderAlerts();
+        updateStats();
+        showToast('Alert marked as resolved', 'success');
+      };
+
+      window.filterAlerts = function (sev) {
+        document.querySelectorAll('.filter-bar button').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+        renderAlerts(sev);
+      };
+
+      loadAlerts();
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resource Logistics — LIFELINE National Emergency Operations</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Resource Specific Styling */
+    .resource-inventory-wrap {
+      background: white;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-lt);
+      box-shadow: var(--shadow-sm);
+      margin-top: 24px;
+      overflow: hidden;
+    }
+
+    .inventory-header {
+      padding: 20px 24px;
+      background: #F8FAFC;
+      border-bottom: 1px solid var(--border-lt);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .res-type-badge {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #F1F5F9;
+      color: var(--text-sec);
+    }
+
+    .qty-high {
+      color: var(--green);
+      font-weight: 800;
+    }
+
+    .qty-low {
+      color: var(--orange);
+      font-weight: 800;
+    }
+
+    .qty-crit {
+      color: var(--red);
+      font-weight: 800;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="sidebarRoot"></div>
+  <div class="main">
+    <div id="topbarRoot"></div>
+    <div id="tickerRoot"></div>
+
+    <div class="content">
+      <div class="page-header">
+        <div class="page-header-info">
+          <h2>National Logistics & Resources</h2>
+          <p>Real-time inventory tracking, multi-sector allocation, and dispatch coordination center.</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-outline">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M9 17v-2a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m-3-9a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+            </svg>
+            Audit Logs
+          </button>
+          <button class="btn btn-primary" onclick="openModal('resourceModal')">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M12 4v16m8-8H4" />
+            </svg>
+            Add Inventory Item
+          </button>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Catalogued Items</div>
+          <div class="stat-val" id="stat-total">0</div>
+          <div class="stat-sub">Across 5 primary sectors</div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-label">Units Dispatched</div>
+          <div class="stat-val" id="stat-dispatched">0</div>
+          <div class="stat-sub">Active field deployment</div>
+        </div>
+        <div class="stat-card critical">
+          <div class="stat-label">Critical Shortages</div>
+          <div class="stat-val" id="stat-shortage">0</div>
+          <div class="stat-sub">Immediate restock required</div>
+        </div>
+        <div class="stat-card warning">
+          <div class="stat-label">Active Allocations</div>
+          <div class="stat-val" id="stat-allocations">0</div>
+          <div class="stat-sub">Distributed to relief hubs</div>
+        </div>
+      </div>
+
+      <div class="two-col" style="grid-template-columns: 2fr 1fr; align-items: stretch; margin-bottom: 24px;">
+        <div class="table-card" style="margin-bottom: 0;">
+          <div class="table-card-header">
+            <h3>Inventory Stock Levels</h3>
+          </div>
+          <div style="padding: 24px; height: 300px;">
+            <canvas id="stockChart"></canvas>
+          </div>
+        </div>
+
+        <div class="table-card" style="margin-bottom: 0;">
+          <div class="table-card-header">
+            <h3>Supply Category Mix</h3>
+          </div>
+          <div style="padding: 24px; height: 300px;">
+            <canvas id="categoryChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="resource-inventory-wrap">
+        <div class="inventory-header">
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-outline btn-sm active" onclick="filterByType('All', this)">All Sectors</button>
+            <button class="btn btn-outline btn-sm" onclick="filterByType('Food', this)">🍱 Food</button>
+            <button class="btn btn-outline btn-sm" onclick="filterByType('Medical', this)">🩺 Medical</button>
+            <button class="btn btn-outline btn-sm" onclick="filterByType('Equipment', this)">🚤 Equipment</button>
+          </div>
+          <div style="flex: 1; max-width: 400px;">
+            <input type="text" id="searchInput" placeholder="Search inventory by name, ID, or facility..."
+              oninput="applyFilters()"
+              style="width: 100%; padding: 8px 16px; border: 1px solid var(--border-lt); border-radius: 6px;">
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>SKU / Resource ID</th>
+                <th>Resource Nomenclature</th>
+                <th>Classification</th>
+                <th>Stock Quantity</th>
+                <th>Facility Assignment</th>
+                <th>Inventory Health</th>
+                <th>Intel</th>
+              </tr>
+            </thead>
+            <tbody id="resourceBody">
+              <!-- Content via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="resourceModal">
+    <div class="modal-card" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3>Register New Inventory Consignment</h3>
+        <button class="btn-close" onclick="closeModal('resourceModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>SKU / Resource ID</label>
+            <input type="text" id="r_id" placeholder="e.g. RES-2026-042">
+          </div>
+          <div class="form-group">
+            <label>Item Nomenclature</label>
+            <input type="text" id="r_name" placeholder="e.g. High-Calorie Food Kits">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Logistical Classification</label>
+            <select id="r_type">
+              <option>Food</option>
+              <option>Water</option>
+              <option>Medical</option>
+              <option>Equipment</option>
+              <option>Shelter</option>
+              <option>Clothing</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Initial Quantity (Units)</label>
+            <input type="number" id="r_qty" placeholder="0">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Target Facility / Warehouse</label>
+            <select id="r_camp">
+              <option value="">Central National Warehouse</option>
+              <option value="1">Bhuj Secondary Hub</option>
+              <option value="2">Patna Relief Center</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Inventory Health Status</label>
+            <select id="r_status">
+              <option>In Stock</option>
+              <option>Low Stock</option>
+              <option>Critical</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('resourceModal')">Abort Consignment</button>
+        <button class="btn btn-primary" onclick="addResource()">Commit to Inventory</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    const auth = requireAuth('resources');
+    let resources = [];
+    let activeTypeFilter = 'All';
+
+    if (auth) {
+      document.getElementById('sidebarRoot').innerHTML = buildSidebar('resources');
+      document.getElementById('topbarRoot').innerHTML = buildTopbar('National Logistics', 'Inventory Intel');
+      injectEmergencyTicker();
+
+      async function loadResources() {
+        try {
+          const res = await fetch('http://localhost:5000/api/resources');
+          resources = await res.json();
+          applyFilters();
+          updateStats();
+          initCharts();
+        } catch (err) {
+          console.error(err);
+          // Demo Fallback
+          resources = [
+            { resource_id: 'R-2026-001', name: 'High-Protein Ration Kits', type: 'Food', quantity: 4500, status: 'In Stock', camp_name: 'Bhuj Secondary Hub' },
+            { resource_id: 'R-2026-042', name: 'Emergency Trauma Kits', type: 'Medical', quantity: 120, status: 'Low Stock', camp_name: 'Patna Relief Center' },
+            { resource_id: 'R-2026-018', name: 'Zodiac Rescue Inflatables', type: 'Equipment', quantity: 8, status: 'Critical', camp_name: 'Central National Warehouse' }
+          ];
+          applyFilters();
+          updateStats();
+          initCharts();
+        }
+      }
+
+      function initCharts() {
+        // Stock Levels Chart
+        new Chart(document.getElementById('stockChart'), {
+          type: 'bar',
+          data: {
+            labels: resources.slice(0, 5).map(r => r.name.split(' ').slice(0, 2).join(' ')),
+            datasets: [{
+              label: 'Stock Quantity',
+              data: resources.slice(0, 5).map(r => r.quantity),
+              backgroundColor: ['#1976D2', '#ef5350', '#00ACC1', '#43A047', '#FB8C00'],
+              borderRadius: 4
+            }]
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+              x: { grid: { display: false } }
+            },
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        });
+
+        // Category Chart
+        new Chart(document.getElementById('categoryChart'), {
+          type: 'pie',
+          data: {
+            labels: ['Food', 'Medical', 'Equipment', 'Other'],
+            datasets: [{
+              data: [40, 30, 20, 10],
+              backgroundColor: ['#1976D2', '#ef5350', '#00ACC1', '#FB8C00'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        });
+      }
+
+      function applyFilters() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+
+        const filtered = resources.filter(r => {
+          const matchesQuery = r.name.toLowerCase().includes(query) || r.resource_id.toLowerCase().includes(query) || (r.camp_name && r.camp_name.toLowerCase().includes(query));
+          const matchesType = activeTypeFilter === 'All' || r.type === activeTypeFilter;
+          return matchesQuery && matchesType;
+        });
+
+        renderTable(filtered);
+      }
+
+      function renderTable(data) {
+        const body = document.getElementById('resourceBody');
+        const icons = { Food: '🍱', Water: '💧', Medical: '🩺', Equipment: '🚤', Shelter: '⛺', Clothing: '👕' };
+
+        body.innerHTML = data.map((r, i) => `
+          <tr style="animation: fadeInUp 0.4s ${i * 0.05}s both;">
+            <td><span style="font-family: var(--font-mono); font-weight: 700; color: var(--primary);">#${r.resource_id}</span></td>
+            <td><div style="font-weight: 700; color: var(--text-main);">${icons[r.type] || '📦'} ${r.name}</div></td>
+            <td><span class="res-type-badge">${r.type}</span></td>
+            <td><strong class="${r.quantity < 10 ? 'qty-crit' : (r.quantity < 200 ? 'qty-low' : 'qty-high')}">${Number(r.quantity).toLocaleString()}</strong></td>
+            <td><span style="font-size: 0.85rem; color: var(--text-sec); font-weight: 600;">${r.camp_name || 'Central Warehouse'}</span></td>
+            <td><span class="badge ${r.status === 'Critical' ? 'badge-danger' : (r.status === 'Low Stock' ? 'badge-warning' : 'badge-success')}">${r.status}</span></td>
+            <td>
+              <div style="display: flex; gap: 4px;">
+                <button class="btn btn-success btn-sm" onclick="dispatchItem('${r.resource_id}')">Dispatch</button>
+                <button class="btn btn-outline btn-sm" style="color: var(--red); border-color: #FEE2E2;" onclick="removeItem('${r.resource_id}')">✕</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      window.filterByType = function (type, el) {
+        activeTypeFilter = type;
+        document.querySelectorAll('.inventory-header .btn-outline').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+        applyFilters();
+      };
+
+      window.addResource = async function () {
+        const data = {
+          resource_id: document.getElementById('r_id').value,
+          name: document.getElementById('r_name').value,
+          type: document.getElementById('r_type').value,
+          quantity: document.getElementById('r_qty').value,
+          status: document.getElementById('r_status').value,
+          camp_id: document.getElementById('r_camp').value
+        };
+
+        // Mock API
+        resources.unshift({ camp_name: data.camp_id ? 'Assigned Hub' : 'Warehouse', ...data });
+        applyFilters();
+        updateStats();
+        closeModal('resourceModal');
+        showToast('Inventory consignment committed', 'success');
+        logAudit('INVENTORY_ADDED', `New item: ${data.name} (QTY: ${data.quantity})`);
+      };
+
+      window.dispatchItem = function (id) {
+        const item = resources.find(r => r.resource_id === id);
+        showToast(`Initiating dispatch protocol for ${item.name}...`, 'success');
+        logAudit('ITEM_DISPATCHED', `Dispatched consignment: ${item.name} to field operations`);
+      };
+
+      window.removeItem = function (id) {
+        resources = resources.filter(r => r.resource_id !== id);
+        applyFilters();
+        updateStats();
+        showToast('SKU purged from inventory registry', 'success');
+      };
+
+      function updateStats() {
+        animateCount(document.getElementById('stat-total'), resources.length);
+        animateCount(document.getElementById('stat-dispatched'), resources.reduce((acc, r) => acc + (r.quantity < 500 ? 50 : 200), 0)); // Simulated dispatch count
+        animateCount(document.getElementById('stat-shortage'), resources.filter(r => r.status === 'Critical' || r.status === 'Low Stock').length);
+        animateCount(document.getElementById('stat-allocations'), resources.filter(r => r.camp_name).length);
+      }
+
+      loadResources();
+    }
+  </script>
+</body>
+
+</html>
